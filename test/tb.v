@@ -1,9 +1,7 @@
 `default_nettype none
 `timescale 1ns / 1ps
 
-/* This testbench instantiates the module and runs a self-checking 
-   Verilog simulation for all 8 ALU operations.
-*/
+
 module tb ();
 
   // Dump the signals to a FST file. You can view it with gtkwave or surfer.
@@ -13,9 +11,9 @@ module tb ();
   end
 
   // Wire up the inputs and outputs:
-  reg clk;
-  reg rst_n;
-  reg ena;
+  //reg clk;
+  //reg rst_n;
+  //reg ena;
   reg [7:0] ui_in;
   reg [7:0] uio_in;
   wire [7:0] uo_out;
@@ -27,7 +25,7 @@ module tb ();
   wire VGND = 1'b0;
 `endif
 
-  // Instantiate the ALU module:
+  //DUT
   tt_um_example user_project (
 `ifdef GL_TEST
       .VPWR(VPWR),
@@ -38,90 +36,117 @@ module tb ();
       .uio_in (uio_in),   
       .uio_out(uio_out),  
       .uio_oe (uio_oe),   
-      .ena    (ena),      
-      .clk    (clk),      
-      .rst_n  (rst_n)     
+      .ena    (1'b1),      
+      .clk    (1'b0),      
+      .rst_n  (1'b0)     
   );
-
-  // Generate a dummy clock (just in case the physical synthesizer expects one)
-  always #5 clk = ~clk;
+  
 
   // --- SELF-CHECKING TESTBENCH LOGIC ---
+    integer i;
+    integer error_count = 0;
+    reg [3:0] rand_a;
+    reg [3:0] rand_b;
+    reg [7:0] combined_in;
+    reg [7:0] exp_out;
+
   initial begin
     // 1. Initialize State
-    clk = 0;
-    rst_n = 0;
-    ena = 1;
-    ui_in = 8'b0;
-    uio_in = 8'b0;
+    $display("Initializing");
+    #20;
 
-    // 2. Release Reset
-    #10 rst_n = 1;
-    #10;
+    $display("--- STARTING RANDOMIZED TESTS ---");
+    for (i = 0; i < 16; i = i + 1) begin
+      // Generate random 4-bit inputs
+      rand_a = $random & 4'b1111;
+      rand_b = $random & 4'b1111;
+      combined_in = {rand_b, rand_a};
 
-    $display("--- STARTING 4-BIT ALU TESTS ---");
+      $display("Random Iteration %0d (A=%0d, B=%0d)", i+1, rand_a, rand_b);
 
-    // 3. Test ADD (000): A = 5, B = 3. Expected = 8
-    // Note: B is the upper 4 bits, A is the lower 4 bits -> {B, A}
-    uio_in[2:0] = 3'b000;
-    ui_in = {4'd3, 4'd5}; 
-    #10;
-    if (uo_out === 8'd8) $display("PASS: ADD (5 + 3 = 8)");
-    else $display("FAIL: ADD. Expected 8, Got %d", uo_out);
+      // Random ADD
+      uio_in[2:0] = 3'b000;
+      ui_in = combined_in;
+      exp_out = rand_a + rand_b;
+      #10;
+      if (uo_out === exp_out) $display("PASS: Random ADD");
+      else begin
+        $display("FAIL: Random ADD. Expected %d, Got %d", exp_out, uo_out);
+        error_count = error_count + 1;
+      end
 
-    // 4. Test SUB (001): A = 10, B = 4. Expected = 6
-    uio_in[2:0] = 3'b001;
-    ui_in = {4'd4, 4'd10};
-    #10;
-    if (uo_out === 8'd6) $display("PASS: SUB (10 - 4 = 6)");
-    else $display("FAIL: SUB. Expected 6, Got %d", uo_out);
+      // Random SUB
+      uio_in[2:0] = 3'b001;
+      exp_out = rand_a - rand_b; // 8-bit reg handles the Two's Complement wrap automatically!
+      #10;
+      if (uo_out === exp_out) $display("PASS: Random SUB");
+      else begin
+        $display("FAIL: Random SUB. Expected %d, Got %d", exp_out, uo_out);
+        error_count = error_count + 1;
+      end
 
-    // 5. Test MUL (010): A = 6, B = 7. Expected = 42
-    uio_in[2:0] = 3'b010;
-    ui_in = {4'd7, 4'd6};
-    #10;
-    if (uo_out === 8'd42) $display("PASS: MUL (6 * 7 = 42)");
-    else $display("FAIL: MUL. Expected 42, Got %d", uo_out);
+      // Random MUL
+      uio_in[2:0] = 3'b010;
+      exp_out = rand_a * rand_b;
+      #10;
+      if (uo_out === exp_out) $display("PASS: Random MUL");
+      else begin
+        $display("FAIL: Random MUL. Expected %d, Got %d", exp_out, uo_out);
+        error_count = error_count + 1;
+      end
 
-    // 6. Test AND (011): A = 1101 (13), B = 1011 (11). Expected = 1001 (9)
-    uio_in[2:0] = 3'b011;
-    ui_in = {4'b1011, 4'b1101};
-    #10;
-    if (uo_out === {4'b0000, 4'b1001}) $display("PASS: AND (1101 & 1011 = 1001)");
-    else $display("FAIL: AND. Got %b", uo_out);
+      // Random AND
+      uio_in[2:0] = 3'b011;
+      exp_out = {4'b0000, rand_a & rand_b};
+      #10;
+      if (uo_out === exp_out) $display("PASS: Random AND");
+      else begin
+        $display("FAIL: Random AND. Expected %b, Got %b", exp_out, uo_out);
+        error_count = error_count + 1;
+      end
 
-    // 7. Test OR (100): A = 0100 (4), B = 0010 (2). Expected = 0110 (6)
-    uio_in[2:0] = 3'b100;
-    ui_in = {4'b0010, 4'b0100};
-    #10;
-    if (uo_out === {4'b0000, 4'b0110}) $display("PASS: OR (0100 | 0010 = 0110)");
-    else $display("FAIL: OR. Got %b", uo_out);
+      // Random OR
+      uio_in[2:0] = 3'b100;
+      exp_out = {4'b0000, rand_a | rand_b};
+      #10;
+      if (uo_out === exp_out) $display("PASS: Random OR");
+      else begin
+        $display("FAIL: Random OR. Expected %b, Got %b", exp_out, uo_out);
+        error_count = error_count + 1;
+      end
 
-    // 8. Test XOR (101): A = 1111 (15), B = 0101 (5). Expected = 1010 (10)
-    uio_in[2:0] = 3'b101;
-    ui_in = {4'b0101, 4'b1111};
-    #10;
-    if (uo_out === {4'b0000, 4'b1010}) $display("PASS: XOR (1111 ^ 0101 = 1010)");
-    else $display("FAIL: XOR. Got %b", uo_out);
+      // Random XOR
+      uio_in[2:0] = 3'b101;
+      exp_out = {4'b0000, rand_a ^ rand_b};
+      #10;
+      if (uo_out === exp_out) $display("PASS: Random XOR");
+      else begin
+        $display("FAIL: Random XOR. Expected %b, Got %b", exp_out, uo_out);
+        error_count = error_count + 1;
+      end
 
-    // 9. Test Bin2Gray (110): Combined = {B=0011, A=0110} = 8'b0011_0110 (54)
-    // Gray Code math: 54 ^ (54 >> 1) = 00110110 ^ 00011011 = 00101101 (45)
-    uio_in[2:0] = 3'b110;
-    ui_in = {4'b0011, 4'b0110};
-    #10;
-    if (uo_out === 8'b0010_1101) $display("PASS: Bin2Gray (54 -> 45)");
-    else $display("FAIL: Bin2Gray. Got %b", uo_out);
+      // Random Bin2Gray
+      uio_in[2:0] = 3'b110;
+      exp_out = combined_in ^ (combined_in >> 1);
+      #10;
+      if (uo_out === exp_out) $display("PASS: Random Bin2Gray");
+      else begin
+        $display("FAIL: Random Bin2Gray. Expected %b, Got %b", exp_out, uo_out);
+        error_count = error_count + 1;
+      end
 
-    // 10. Test Gray2Bin (111): Combined Gray = 0010_1101 (45). Expected Bin = 0011_0110 (54)
-    uio_in[2:0] = 3'b111;
-    ui_in = {4'b0010, 4'b1101}; // Inputting the Gray code from previous test
-    #10;
-    if (uo_out === 8'b0011_0110) $display("PASS: Gray2Bin (45 -> 54)");
-    else $display("FAIL: Gray2Bin. Got %b", uo_out);
-
-    $display("--- ALL TESTS COMPLETED ---");
-    
-    // Let the simulation run just a tiny bit longer before closing
+      // Random Gray2Bin
+      // We take the expected Gray code from the previous step to test the reversal!
+      uio_in[2:0] = 3'b111;
+      ui_in = exp_out; 
+      #10;
+      if (uo_out === combined_in) $display("PASS: Random Gray2Bin");
+      else begin
+        $display("FAIL: Random Gray2Bin. Expected %b, Got %b", combined_in, uo_out);
+        error_count = error_count + 1;
+      end
+      
+    end
     #20;
   end
 
