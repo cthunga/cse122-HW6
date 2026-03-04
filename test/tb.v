@@ -57,7 +57,6 @@ module tb ();
 
     $display("--- STARTING RANDOMIZED TESTS ---");
     for (i = 0; i < 16; i = i + 1) begin
-      // Generate random 4-bit inputs
       rand_a = $random & 4'b1111;
       rand_b = $random & 4'b1111;
       combined_in = {rand_b, rand_a};
@@ -77,7 +76,7 @@ module tb ();
 
       // Random SUB
       uio_in[2:0] = 3'b001;
-      exp_out = rand_a - rand_b; // 8-bit reg handles the Two's Complement wrap automatically!
+      exp_out = rand_a - rand_b;
       #10;
       if (uo_out === exp_out) $display("PASS: Random SUB");
       else begin
@@ -136,7 +135,6 @@ module tb ();
       end
 
       // Random Gray2Bin
-      // We take the expected Gray code from the previous step to test the reversal!
       uio_in[2:0] = 3'b111;
       ui_in = exp_out; 
       #10;

@@ -30,21 +30,25 @@ The ALU takes two 4-bit operands and a 3-bit opcode as input. ALU outputs a 8-bi
 * `111`: 8-bit Gray Code to Binary Conversion
 
 **Operations**
-* Addition: Takes two 4-bit inputs and returns a 8-bit output. The left 3 bits of the output are 0 and the right 5 bits are the result.
-* Subtraction: Takes two 4-bit inputs and returns a 8-bit output. The left 3 bits of the output are 0 and the right 5 bits are the result (Note: if B > A, the output will wrap around into 8-bit Two's Complement).
-* Multiplication: Takes two 4-bit inputs and returns an 8-bit result as the output.
-* Bitwise AND: Takes two 4-bit inputs and returns an 8-bit output. The left 4 bits are 0 and the right 4 bits contain the bitwise AND result.
-* Bitwise OR: Takes two 4-bit inputs and returns an 8-bit output. The left 4 bits are 0 and the right 4 bits contain the bitwise OR result.
-* Bitwise XOR: Takes two 4-bit inputs and returns an 8-bit output. The left 4 bits are 0 and the right 4 bits contain the bitwise XOR result.
-* Binary to Gray Code: Concatenates the two 4-bit inputs into a single 8-bit binary word (Operand B as the upper 4 bits, Operand A as the lower 4 bits) and returns its 8-bit Gray code equivalent.
-* Gray to Binary Code: Concatenates the two 4-bit inputs into a single 8-bit Gray code word (Operand B as the upper 4 bits, Operand A as the lower 4 bits) and returns its 8-bit standard binary equivalent.
+* `Addition`: Takes two 4-bit inputs and returns a 8-bit output. The left 3 bits of the output are 0 and the right 5 bits are the result.
+* `Subtraction`: Takes two 4-bit inputs and returns a 8-bit output. The left 3 bits of the output are 0 and the right 5 bits are the result (Note: if B > A, the output will wrap around into 8-bit Two's Complement).
+* `Multiplication`: Takes two 4-bit inputs and returns an 8-bit result as the output.
+* `Bitwise AND`: Takes two 4-bit inputs and returns an 8-bit output. The left 4 bits are 0 and the right 4 bits contain the bitwise AND result.
+* `Bitwise OR`: Takes two 4-bit inputs and returns an 8-bit output. The left 4 bits are 0 and the right 4 bits contain the bitwise OR result.
+* `Bitwise XOR`: Takes two 4-bit inputs and returns an 8-bit output. The left 4 bits are 0 and the right 4 bits contain the bitwise XOR result.
+* `Binary to Gray Code`: Concatenates the two 4-bit inputs into a single 8-bit binary word (Operand B as the upper 4 bits, Operand A as the lower 4 bits) and returns its 8-bit Gray code equivalent.
+* `Gray to Binary Code`: Concatenates the two 4-bit inputs into a single 8-bit Gray code word (Operand B as the upper 4 bits, Operand A as the lower 4 bits) and returns its 8-bit standard binary equivalent.
 
 ## How to test
 
-The design is verified using a self-checking Verilog testbench. 
+To use the ALU, input a 8 bit input seperated as `ui_in = {b , a}`. Then choose an operation by using an opcode inputed as `uio_in[2:0] = sel`.
 
-This testbench is sufficient to test the design because it systematically iterates through all 8 operational opcodes, applying various combinations of Operands A and B (including edge cases like maximum 4-bit values for multiplication and subtraction underflow). The testbench independently calculates the expected 8-bit result and asserts it against the module's actual `uo_out` signal, immediately flagging any logical mismatches or synthesis truncation errors.
+The design is verified using a Verilog testbench. The testbench validates the logic by running 16 randomized test iterations. It generates random 4-bit inputs for A and B, plugs them into the Device Under Test (DUT) for each operation, and compares them to the expected value of the operation. If a comparison fails, the error count is increased, and the testbench fails the DUT.
 
 ## External hardware
 
 No external hardware is required. However, to test the ALU, you would need 11 switches for inputs and 8 LEDs to display the result.
+
+## GEN AI Disclaimer
+
+GenAI was used to debug errors and find silly mistakes such as syntax and small coding errors. GenAI wasn't used to generate code except for display statements and comments in the testbench.
